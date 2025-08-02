@@ -8,14 +8,20 @@ export default function App() {
   return (
     <View style={styles.container}>
       <Text
+        style={{
+          width: 140,
+          paddingHorizontal: 16,
+          backgroundColor:'red'
+        }}
         onPress={() => {
           showPopover({
             anchorViewId: findNodeHandle(ref.current!)!,
-            menuItems: ['11111111111111111111111111', '2', '3'],
+            menuItems: ['111111111111', '2322222222222', '3'],
             index: 0,
             config: {
               menuWidth: 140,
-              textAlignment:'right'
+              textAlignment: 'left',
+              shadowColor:'#000000',
             },
           });
         }}

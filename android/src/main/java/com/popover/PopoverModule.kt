@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Typeface
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.LayerDrawable
 import android.graphics.drawable.PictureDrawable
 import android.os.Build
 import android.util.TypedValue
@@ -13,9 +14,7 @@ import android.view.WindowManager
 import android.widget.ImageView
 import android.widget.PopupWindow
 import android.widget.TextView
-import androidx.core.content.ContextCompat
 import androidx.core.graphics.toColorInt
-import androidx.core.view.marginBottom
 import com.caverock.androidsvg.SVG
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
@@ -23,6 +22,7 @@ import com.facebook.react.bridge.ReadableArray
 import com.facebook.react.bridge.ReadableMap
 import com.facebook.react.bridge.ReadableType
 import com.facebook.react.module.annotations.ReactModule
+import com.facebook.react.uimanager.PixelUtil.dpToPx
 import com.facebook.react.uimanager.UIManagerHelper
 import com.google.android.flexbox.AlignItems.CENTER
 import com.google.android.flexbox.FlexDirection
@@ -86,11 +86,6 @@ class PopoverModule(reactContext: ReactApplicationContext) :
     val rowHeight:Int,
     val selectedTextColor: String,
     val separatorColor: String,
-    val shadowColor: String,
-    val shadowOpacity: Float,
-    val shadowRadius: Float,
-    val shadowOffsetX: Float,
-    val shadowOffsetY: Float,
     val checkIconSize:Int
   )
   // 安全读取方法
@@ -170,22 +165,17 @@ class PopoverModule(reactContext: ReactApplicationContext) :
   private fun getConfigWithDefaults(config: ReadableMap?): ConfigDefaults {
     return ConfigDefaults(
       menuWidth = getSafeDouble(config, "menuWidth")?.toInt() ?: 160,
-      menuCornerRadius = getSafeDouble(config, "menuCornerRadius")?.toFloat() ?: 16f,
-      textColor = getSafeString(config, "textColor") ?: "#333333",
+      menuCornerRadius = getSafeDouble(config, "menuCornerRadius")?.toFloat() ?: 8f,
+      textColor = getSafeString(config, "textColor") ?: "#262626",
       backgroundColor = getSafeString(config, "backgroundColor") ?: "#FFFFFF",
-      borderColor = getSafeString(config, "borderColor") ?: "#E5E5E5",
+      borderColor = getSafeString(config, "borderColor") ?: "#E6E6E6",
       borderWidth = getSafeDouble(config, "borderWidth")?.toFloat() ?: 0f,
       padding = getPaddingWithDefaults(getSafeMap(config, "padding")),
       textFont = getTextFontWithDefaults(getSafeMap(config, "textFont")),
       textAlignment = getSafeString(config, "textAlignment") ?: "left",
       animationDuration = getSafeDouble(config, "animationDuration")?.toFloat() ?: 0.2f,
       selectedTextColor = getSafeString(config, "selectedTextColor") ?: "#FF891F",
-      separatorColor = getSafeString(config, "separatorColor") ?: "#E5E5E5",
-      shadowColor = getSafeString(config, "shadowColor") ?: "#000000",
-      shadowOpacity = getSafeDouble(config, "shadowOpacity")?.toFloat() ?: 0.1f,
-      shadowRadius = getSafeDouble(config, "shadowRadius")?.toFloat() ?: 4f,
-      shadowOffsetX = getSafeDouble(config, "shadowOffsetX")?.toFloat() ?: 0f,
-      shadowOffsetY = getSafeDouble(config, "shadowOffsetY")?.toFloat() ?: 2f,
+      separatorColor = getSafeString(config, "separatorColor") ?: "#E6E6E6",
       rowHeight = getSafeInt(config,"rowHeight")?:48,
       checkIconSize = getSafeInt(config,"checkIconSize")?:16
     )
@@ -206,6 +196,24 @@ class PopoverModule(reactContext: ReactApplicationContext) :
     val uiManager= UIManagerHelper.getUIManagerForReactTag(reactContext,anchorViewId)
     return  uiManager?.resolveView(anchorViewId)
   }
+  private fun createPopupShadowDrawable(
+    radius: Float = 8f,  // 圆角半径，默认 8dp
+    backgroundColor: String = "#FFFFFF"  // 主体背景颜色，默认白色
+  ): LayerDrawable {
+
+    // 主体层
+    val backgroundDrawable = GradientDrawable().apply {
+      shape = GradientDrawable.RECTANGLE
+      setColor(backgroundColor.toColorInt())  // 设置主体颜色
+      cornerRadius = radius.dpToPx()
+    }
+
+    // 创建 LayerDrawable
+    val layers = arrayOf<Drawable>(backgroundDrawable)
+    val layerDrawable = LayerDrawable(layers)
+    return layerDrawable
+  }
+
   override fun show(
     anchorViewId: Double,
     menuItems: ReadableArray?,
@@ -227,20 +235,14 @@ class PopoverModule(reactContext: ReactApplicationContext) :
             LayoutParams.MATCH_PARENT,
             LayoutParams.WRAP_CONTENT
           )
-          showDividerVertical=SHOW_DIVIDER_MIDDLE
-          val divider = ContextCompat.getDrawable(context, R.drawable.divider_vertical)
-          requireNotNull(divider) { "Divider drawable is null!" }
-          setDividerDrawable(divider)
           val drawable = GradientDrawable().apply {
-            setColor(configDefaults.backgroundColor.toColorInt())
-            cornerRadius = configDefaults.menuCornerRadius
-            // 添加边框
-            if (configDefaults.borderWidth > 0) {
-              setStroke(configDefaults.borderWidth.toInt(), configDefaults.borderColor.toColorInt())
-            }
+            shape = GradientDrawable.RECTANGLE
+            setSize(0, 1)
+            setColor(configDefaults.separatorColor.toColorInt())  // 设置颜色
           }
-          background = drawable
-          justifyContent = SPACE_BETWEEN
+
+          setDividerDrawable(drawable)
+          setShowDivider(SHOW_DIVIDER_MIDDLE)
           setPadding(
             configDefaults.padding.left,
             configDefaults.padding.top,
@@ -316,9 +318,11 @@ class PopoverModule(reactContext: ReactApplicationContext) :
           WindowManager.LayoutParams.WRAP_CONTENT,
           true
         ).apply {
-          elevation = configDefaults.shadowRadius
           isOutsideTouchable = true
           isFocusable = true
+          val drawable =createPopupShadowDrawable(configDefaults.menuCornerRadius,configDefaults.backgroundColor)
+          elevation=12f
+          setBackgroundDrawable(drawable)
         }
         anchorView.post {
           popupWindow!!.showAsDropDown(anchorView,0,5.dpToPx(reactApplicationContext))

@@ -1,7 +1,7 @@
 {
-  "name": "react-native-popover",
+  "name": "@see_you/react-native-popover",
   "version": "0.1.0",
-  "description": "111",
+  "description": "一个跨平台的React Native弹出菜单组件,支持iOS和Android平台。",
   "main": "./lib/module/index.js",
   "types": "./lib/typescript/src/index.d.ts",
   "exports": {
@@ -97,11 +97,6 @@
     "modulePathIgnorePatterns": [
       "<rootDir>/example/node_modules",
       "<rootDir>/lib/"
-    ]
-  },
-  "commitlint": {
-    "extends": [
-      "@commitlint/config-conventional"
     ]
   },
   "release-it": {

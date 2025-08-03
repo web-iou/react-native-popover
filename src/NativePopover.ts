@@ -1,15 +1,16 @@
 import type { TurboModule } from 'react-native';
 import { TurboModuleRegistry } from 'react-native';
+import type { Int32 } from 'react-native/Libraries/Types/CodegenTypes';
 
 /**
  * PopOver菜单配置接口
  */
 export interface PopOverMenuConfiguration {
   /** 菜单宽度 */
-  menuWidth: number;
+  menuWidth: Int32;
 
   /** 菜单圆角半径 */
-  menuCornerRadius?: number;
+  menuCornerRadius?: Int32;
 
   /** 文本颜色 */
   textColor?: string;
@@ -21,26 +22,27 @@ export interface PopOverMenuConfiguration {
   borderColor?: string;
 
   /** 边框宽度 */
-  borderWidth?: number;
+  borderWidth?: Int32;
 
   /** 内边距 */
   padding?: {
-    top: number;
-    left: number;
-    bottom: number;
-    right: number;
+    top?: Int32;
+    left?: Int32;
+    bottom?: Int32;
+    right?: Int32;
   };
-  rowHeight?: number;
+  rowHeight?: Int32;
   /** 文本字体 */
   textFont?: {
-    fontSize?: number;
-    fontWeight?: number;
+    fontSize?: Int32;
+    fontWeight?: Int32;
   };
-  checkIconSize?: number;
+  checkIconSize?: Int32;
   /** 文本对齐方式 */
   textAlignment?: 'left' | 'center' | 'right';
-
-  /** 动画持续时间（秒） */
+  /**
+   * @platform ios
+   * 动画持续时间（秒） */
   animationDuration?: number;
 
   /** 选中项的文本颜色 */
@@ -49,19 +51,34 @@ export interface PopOverMenuConfiguration {
   /** 分隔线颜色 */
   separatorColor?: string;
 
-  /** 阴影颜色 */
+  /**
+   * @platform ios
+   * 阴影颜色
+   */
   shadowColor?: string;
 
-  /** 阴影不透明度 */
+  /**
+   * @platform ios
+   * 阴影不透明度
+   */
   shadowOpacity?: number;
 
-  /** 阴影半径 */
+  /**
+   * @platform ios
+   * 阴影半径
+   */
   shadowRadius?: number;
 
-  /** 阴影X轴偏移量 */
+  /**
+   * @platform ios
+   * 阴影X轴偏移量
+   */
   shadowOffsetX?: number;
 
-  /** 阴影Y轴偏移量 */
+  /**
+   * @platform ios
+   * 阴影Y轴偏移量
+   */
   shadowOffsetY?: number;
 }
 

@@ -17,9 +17,9 @@
 ## 安装
 
 ```bash
-npm install react-native-popover
+npm install @see_you/react-native-popover
 # 或
-yarn add react-native-popover
+yarn add @see_you/react-native-popover
 ```
 
 ### iOS 安装

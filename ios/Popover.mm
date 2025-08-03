@@ -302,10 +302,10 @@ NSDictionary<NSNumber *, NSNumber *> *cssToUIFontWeight = @{
     // padding是对象类型
     if (config.padding()) {
       configDict[@"padding"] = @{
-        @"top":@(config.padding().value().top()),
-        @"left":@(config.padding().value().left()),
-        @"bottom":@(config.padding().value().bottom()),
-        @"right":@(config.padding().value().right()),
+        @"top":@(config.padding().value().top().value()),
+        @"left":@(config.padding().value().left().value()),
+        @"bottom":@(config.padding().value().bottom().value()),
+        @"right":@(config.padding().value().right().value()),
       };
     }
     

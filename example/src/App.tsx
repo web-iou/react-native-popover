@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useNativePopover } from 'react-native-popover';
+import { useNativePopover } from '@see_you/react-native-popover';
 
 function App(): React.JSX.Element {
   const [showPopover, anchorRef] = useNativePopover(1);

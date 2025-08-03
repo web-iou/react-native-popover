@@ -1,7 +1,8 @@
 # React Native Popover
 
 一个跨平台的React Native弹出菜单组件，支持iOS和Android平台。
-
+## 预览
+![Demo](./doc/Simulator%20Screen%20Recording%20-%20iPhone%2016%20Pro%20-%202025-08-03%20at%2021.22.36.gif)
 ## 功能特性
 
 - ✅ 支持iOS和Android平台

@@ -12,7 +12,7 @@ import { useNativePopover } from 'react-native-popover';
 
 function App(): React.JSX.Element {
   const [showPopover, anchorRef] = useNativePopover(1);
-
+  const [showPopover2, anchorRef2] = useNativePopover();
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
@@ -20,7 +20,6 @@ function App(): React.JSX.Element {
         <View style={styles.content}>
           <Text style={styles.title}>React Native Popover 测试</Text>
           <Text style={styles.subtitle}>点击下面的按钮来测试popover功能</Text>
-
           <TouchableOpacity
             ref={anchorRef}
             style={styles.button}
@@ -30,9 +29,19 @@ function App(): React.JSX.Element {
               })
             }
           >
-            <Text style={styles.buttonText}>显示 Popover</Text>
+            <Text style={styles.buttonText}>显示选项 Popover</Text>
           </TouchableOpacity>
-
+          <TouchableOpacity
+            ref={anchorRef2}
+            style={styles.button}
+            onPress={() =>
+              showPopover2(['选项 1', '选项 2', '选项 3', '选项 4'], {
+                menuWidth: 200,
+              })
+            }
+          >
+            <Text style={styles.buttonText}>显示菜单 Popover</Text>
+          </TouchableOpacity>
           <View style={styles.info}>
             <Text style={styles.infoTitle}>功能说明:</Text>
             <Text style={styles.infoText}>

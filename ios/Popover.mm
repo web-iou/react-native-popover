@@ -535,7 +535,19 @@ NSDictionary<NSNumber *, NSNumber *> *cssToUIFontWeight = @{
         }
         
         CGRect anchorFrame = [anchorView convertRect:anchorView.bounds toView:window];
-        [window addSubview:popupContainer];
+        // 创建遮罩层并添加到 window，实现模态效果
+        UIView *overlay = [[UIView alloc] init];
+        overlay.backgroundColor = [UIColor clearColor];
+        overlay.translatesAutoresizingMaskIntoConstraints = NO;
+        [window addSubview:overlay];
+        [NSLayoutConstraint activateConstraints:@[
+            [overlay.topAnchor constraintEqualToAnchor:window.topAnchor],
+            [overlay.leadingAnchor constraintEqualToAnchor:window.leadingAnchor],
+            [overlay.trailingAnchor constraintEqualToAnchor:window.trailingAnchor],
+            [overlay.bottomAnchor constraintEqualToAnchor:window.bottomAnchor]
+        ]];
+        // 将弹出容器添加到遮罩层
+        [overlay addSubview:popupContainer];
         
         // 设置弹出窗口约束（与锚点左对齐，yoffset默认6）
         popupContainer.translatesAutoresizingMaskIntoConstraints = NO;
@@ -568,22 +580,23 @@ NSDictionary<NSNumber *, NSNumber *> *cssToUIFontWeight = @{
         
         [NSLayoutConstraint activateConstraints:@[
             [popupContainer.widthAnchor constraintEqualToConstant:defaults.menuWidth],
-            [popupContainer.leadingAnchor constraintEqualToAnchor:window.leadingAnchor constant:popupX],
-            [popupContainer.topAnchor constraintEqualToAnchor:window.topAnchor constant:popupY]
+            [popupContainer.leadingAnchor constraintEqualToAnchor:overlay.leadingAnchor constant:popupX],
+            [popupContainer.topAnchor constraintEqualToAnchor:overlay.topAnchor constant:popupY]
         ]];
         
         // 存储回调
         objc_setAssociatedObject(popupContainer, "resolveBlock", resolve, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
         objc_setAssociatedObject(popupContainer, "rejectBlock", reject, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        // 关联遮罩层以便关闭时一并移除
+        objc_setAssociatedObject(popupContainer, "overlayView", overlay, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
         
         // 添加点击外部关闭手势
         UITapGestureRecognizer *backgroundTap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(backgroundTapped:)];
-        backgroundTap.cancelsTouchesInView = NO;
-        [window addGestureRecognizer:backgroundTap];
+        backgroundTap.cancelsTouchesInView = YES; // 模态：拦截点击
+        [overlay addGestureRecognizer:backgroundTap];
         
         // 存储弹出窗口引用和标识
         objc_setAssociatedObject(backgroundTap, "popupContainer", popupContainer, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-        objc_setAssociatedObject(backgroundTap, "isBackgroundTap", @YES, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
         
         // 显示动画
         popupContainer.alpha = 0;
@@ -620,39 +633,18 @@ NSDictionary<NSNumber *, NSNumber *> *cssToUIFontWeight = @{
 }
 
 // 关闭弹出窗口
-- (void)dismissPopup:(UIView *)popupContainer {
+-(void)dismissPopup:(UIView *)popupContainer {
     ConfigDefaults *defaults = [[ConfigDefaults alloc] init];
+    UIView *overlay = objc_getAssociatedObject(popupContainer, "overlayView");
     
     [UIView animateWithDuration:defaults.animationDuration animations:^{
         popupContainer.alpha = 0;
         popupContainer.transform = CGAffineTransformMakeScale(0.8, 0.8);
     } completion:^(BOOL finished) {
-        [popupContainer removeFromSuperview];
-        
-        // 移除背景点击手势
-        UIWindow *window = nil;
-        if (@available(iOS 13.0, *)) {
-            window = [UIApplication sharedApplication].windows.firstObject;
-            for (UIWindow *w in [UIApplication sharedApplication].windows) {
-                if (w.isKeyWindow) {
-                    window = w;
-                    break;
-                }
-            }
+        if (overlay) {
+            [overlay removeFromSuperview];
         } else {
-            window = [UIApplication sharedApplication].keyWindow;
-        }
-        
-        // 使用关联对象来标识我们的手势识别器
-        for (UIGestureRecognizer *gesture in window.gestureRecognizers) {
-            if ([gesture isKindOfClass:[UITapGestureRecognizer class]]) {
-                UITapGestureRecognizer *tapGesture = (UITapGestureRecognizer *)gesture;
-                NSNumber *isBackgroundTap = objc_getAssociatedObject(tapGesture, "isBackgroundTap");
-                if (isBackgroundTap && [isBackgroundTap boolValue]) {
-                    [window removeGestureRecognizer:gesture];
-                    break;
-                }
-            }
+            [popupContainer removeFromSuperview];
         }
     }];
 }

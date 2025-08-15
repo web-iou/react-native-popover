@@ -6,6 +6,7 @@ import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.LayerDrawable
 import android.graphics.drawable.PictureDrawable
+import android.graphics.drawable.ScaleDrawable
 import android.os.Build
 import android.util.TypedValue
 import android.view.Gravity
@@ -86,7 +87,7 @@ class PopoverModule(reactContext: ReactApplicationContext) :
     val rowHeight:Int,
     val selectedTextColor: String,
     val separatorColor: String,
-    val checkIconSize:Int
+    val checkIconSize:Int,
     val separatorWidth:Float
   )
   // 安全读取方法
@@ -179,7 +180,7 @@ class PopoverModule(reactContext: ReactApplicationContext) :
       separatorColor = getSafeString(config, "separatorColor") ?: "#E6E6E6",
       rowHeight = getSafeInt(config,"rowHeight")?:48,
       checkIconSize = getSafeInt(config,"checkIconSize")?:16,
-      separatorWidth =getSafeDouble(config,"separatorWidth")?:0.5
+      separatorWidth =getSafeDouble(config,"separatorWidth")?.toFloat()?:0.5f
     )
   }
   override fun getName(): String {
@@ -239,11 +240,30 @@ class PopoverModule(reactContext: ReactApplicationContext) :
           )
           val drawable = GradientDrawable().apply {
             shape = GradientDrawable.RECTANGLE
-            setSize(0, configDefaults.separatorWidth)
-            setColor(configDefaults.separatorColor.toColorInt())  // 设置颜色
+
+            if (configDefaults.separatorWidth > 1) {
+              // 正数：直接按整数像素设置高度
+              setSize(0, configDefaults.separatorWidth.toInt())
+            } else {
+              // 负数或 0：固定高度 1 像素
+              setSize(0, 1)
+            }
+
+            setColor(configDefaults.separatorColor.toColorInt())
           }
 
-          setDividerDrawable(drawable)
+          val scaleDrawable = if (configDefaults.separatorWidth > 1) {
+            // 正数：不缩放高度
+            ScaleDrawable(drawable, Gravity.FILL, 1f, 1f)
+          } else {
+            // 负数或 0：按比例缩放高度（比例取正数）
+            ScaleDrawable(drawable, Gravity.FILL, 1f, configDefaults.separatorWidth)
+          }.apply {
+            level = 1 // 必须设置level
+          }
+
+
+          setDividerDrawable(scaleDrawable)
           setShowDivider(SHOW_DIVIDER_MIDDLE)
           setPadding(
             configDefaults.padding.left,

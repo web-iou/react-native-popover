@@ -1,6 +1,6 @@
 {
   "name": "@see_you/react-native-popover",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "一个跨平台的React Native弹出菜单组件,支持iOS和Android平台。",
   "main": "./lib/module/index.js",
   "types": "./lib/typescript/src/index.d.ts",

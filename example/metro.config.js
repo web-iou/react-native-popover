@@ -10,7 +10,21 @@ const root = path.resolve(__dirname, '..');
  *
  * @type {import('metro-config').MetroConfig}
  */
-module.exports = withMetroConfig(getDefaultConfig(__dirname), {
-  root,
-  dirname: __dirname,
-});
+module.exports = withMetroConfig(
+  {
+    ...getDefaultConfig(__dirname),
+    resolver: {
+      nodeModulesPaths: [
+        path.resolve(__dirname, 'node_modules')
+      ],
+      disableHierarchicalLookup: true
+    },
+    watchFolders: [
+      path.resolve(__dirname) // 只监听当前目录
+    ],
+  },
+  {
+    root,
+    dirname: __dirname,
+  }
+);

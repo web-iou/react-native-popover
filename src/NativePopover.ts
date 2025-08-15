@@ -51,6 +51,9 @@ export interface PopOverMenuConfiguration {
   /** 分隔线颜色 */
   separatorColor?: string;
 
+  /** 分隔线宽度 */
+  separatorWidth?: Int32;
+
   /**
    * @platform ios
    * 阴影颜色

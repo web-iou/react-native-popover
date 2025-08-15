@@ -31,6 +31,7 @@
 @property (nonatomic, strong) NSString *shadowColor;
 @property (nonatomic, assign) CGFloat shadowOpacity;
 @property (nonatomic, assign) CGFloat shadowRadius;
+@property (nonatomic, assign) CGFloat separatorWidth;
 @property (nonatomic, assign) CGFloat shadowOffsetX;
 @property (nonatomic, assign) CGFloat shadowOffsetY;
 @end
@@ -61,6 +62,7 @@
         _shadowOffsetX = 0;
         _shadowOffsetY = 4;     // 增加到4点偏移
         _rowHeight=48;
+      _separatorWidth =0.5;
     }
     return self;
 }
@@ -162,7 +164,8 @@ NSDictionary<NSNumber *, NSNumber *> *cssToUIFontWeight = @{
         if (rowHeight) defaults.rowHeight = [rowHeight floatValue];
         NSNumber *borderWidth = [self getSafeNumber:config forKey:@"borderWidth"];
         if (borderWidth) defaults.borderWidth = [borderWidth floatValue];
-        
+        NSNumber *separatorWidth = [self getSafeNumber:config forKey:@"separatorWidth"];
+        if (separatorWidth) defaults.separatorWidth = [separatorWidth floatValue];
         // 处理padding
         NSDictionary *paddingDict = [self getSafeDictionary:config forKey:@"padding"];
         if (paddingDict) {
@@ -326,7 +329,9 @@ NSDictionary<NSNumber *, NSNumber *> *cssToUIFontWeight = @{
     if (config.animationDuration().has_value()) {
         configDict[@"animationDuration"] = @(config.animationDuration().value());
     }
-    
+    if(config.separatorWidth().has_value()){
+      configDict[@"separatorWidth"] = @(config.separatorWidth().value());
+    }
     if (config.selectedTextColor()) {
         configDict[@"selectedTextColor"] = config.selectedTextColor();
     }
@@ -496,7 +501,7 @@ NSDictionary<NSNumber *, NSNumber *> *cssToUIFontWeight = @{
                 
                 // 设置分隔线约束（只设置高度，宽度由stackView自动管理）
                 [NSLayoutConstraint activateConstraints:@[
-                    [separator.heightAnchor constraintEqualToConstant:1]
+                    [separator.heightAnchor constraintEqualToConstant:defaults.separatorWidth]
                 ]];
                 
                 // 添加分隔线下方的间距

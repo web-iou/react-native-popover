@@ -87,6 +87,7 @@ class PopoverModule(reactContext: ReactApplicationContext) :
     val selectedTextColor: String,
     val separatorColor: String,
     val checkIconSize:Int
+    val separatorWidth:Float
   )
   // 安全读取方法
   private fun getSafeString(config: ReadableMap?, key: String): String? {
@@ -177,7 +178,8 @@ class PopoverModule(reactContext: ReactApplicationContext) :
       selectedTextColor = getSafeString(config, "selectedTextColor") ?: "#FF891F",
       separatorColor = getSafeString(config, "separatorColor") ?: "#E6E6E6",
       rowHeight = getSafeInt(config,"rowHeight")?:48,
-      checkIconSize = getSafeInt(config,"checkIconSize")?:16
+      checkIconSize = getSafeInt(config,"checkIconSize")?:16,
+      separatorWidth =getSafeDouble(config,"separatorWidth")?:0.5
     )
   }
   override fun getName(): String {
@@ -237,7 +239,7 @@ class PopoverModule(reactContext: ReactApplicationContext) :
           )
           val drawable = GradientDrawable().apply {
             shape = GradientDrawable.RECTANGLE
-            setSize(0, 1)
+            setSize(0, configDefaults.separatorWidth)
             setColor(configDefaults.separatorColor.toColorInt())  // 设置颜色
           }
 

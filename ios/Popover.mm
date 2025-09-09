@@ -15,6 +15,7 @@
 @interface ConfigDefaults : NSObject
 @property (nonatomic, assign) CGFloat menuWidth;
 @property (nonatomic, assign) CGFloat rowHeight;
+@property (nonatomic, assign) CGFloat itemPaddingVertical;
 @property (nonatomic, assign) CGFloat menuCornerRadius;
 @property (nonatomic, assign) CGFloat checkIconSize;
 @property (nonatomic, strong) NSString *textColor;
@@ -43,6 +44,7 @@
     if (self) {
         // 设置默认值
         _menuWidth = 158;
+        _itemPaddingVertical = 13.5;  // 新增：item上下padding默认值
         _menuCornerRadius = 8;
         _textColor = @"#262626";
         _backgroundColor = @"#FFFFFF";
@@ -61,8 +63,8 @@
         _shadowRadius = 8;      // 增加到8点半径
         _shadowOffsetX = 0;
         _shadowOffsetY = 4;     // 增加到4点偏移
-        _rowHeight=48;
-      _separatorWidth =0.5;
+        _rowHeight = 0;         // 不设置默认值，使用自适应高度
+        _separatorWidth =0.3333333;
     }
     return self;
 }
@@ -162,6 +164,9 @@ NSDictionary<NSNumber *, NSNumber *> *cssToUIFontWeight = @{
         if (borderColor) defaults.borderColor = borderColor;
         NSNumber *rowHeight = [self getSafeNumber:config forKey:@"rowHeight"];
         if (rowHeight) defaults.rowHeight = [rowHeight floatValue];
+        
+        NSNumber *itemPaddingVertical = [self getSafeNumber:config forKey:@"itemPaddingVertical"];
+        if (itemPaddingVertical) defaults.itemPaddingVertical = [itemPaddingVertical floatValue];
         NSNumber *borderWidth = [self getSafeNumber:config forKey:@"borderWidth"];
         if (borderWidth) defaults.borderWidth = [borderWidth floatValue];
         NSNumber *separatorWidth = [self getSafeNumber:config forKey:@"separatorWidth"];
@@ -371,7 +376,7 @@ NSDictionary<NSNumber *, NSNumber *> *cssToUIFontWeight = @{
       }
         
         // 创建弹出菜单容器
-      UIView *popupContainer = [[UIView alloc] init];
+      UIScrollView *popupContainer = [[UIScrollView alloc] init];
       popupContainer.backgroundColor = [self ColorFromHexCode:defaults.backgroundColor];
         popupContainer.layer.cornerRadius = defaults.menuCornerRadius;
         // 移除 masksToBounds，否则阴影会被裁剪
@@ -412,7 +417,9 @@ NSDictionary<NSNumber *, NSNumber *> *cssToUIFontWeight = @{
             [stackView.topAnchor constraintEqualToAnchor:popupContainer.topAnchor constant:defaults.padding.top],
             [stackView.leadingAnchor constraintEqualToAnchor:popupContainer.leadingAnchor constant:defaults.padding.left],
             [stackView.trailingAnchor constraintEqualToAnchor:popupContainer.trailingAnchor constant:-defaults.padding.right],
-            [stackView.bottomAnchor constraintEqualToAnchor:popupContainer.bottomAnchor constant:-defaults.padding.bottom]
+            [stackView.bottomAnchor constraintEqualToAnchor:popupContainer.bottomAnchor constant:-defaults.padding.bottom],
+            // 对于UIScrollView，需要明确设置内容的宽度约束
+            [stackView.widthAnchor constraintEqualToConstant:defaults.menuWidth - defaults.padding.left - defaults.padding.right]
         ]];
         int checkIconSize =defaults.checkIconSize;
         // 创建菜单项
@@ -423,16 +430,31 @@ NSDictionary<NSNumber *, NSNumber *> *cssToUIFontWeight = @{
             UIStackView *itemStack = [[UIStackView alloc] init];
             itemStack.axis = UILayoutConstraintAxisHorizontal;
             itemStack.spacing = 8;
-
             itemStack.alignment = UIStackViewAlignmentCenter;
-            [itemStack.heightAnchor constraintEqualToConstant:defaults.rowHeight].active = YES;
+            itemStack.layoutMargins = UIEdgeInsetsMake(defaults.itemPaddingVertical, 0, defaults.itemPaddingVertical, 0);
+            itemStack.layoutMarginsRelativeArrangement = YES;
+            
+            // 不设置固定高度，使用自适应高度
 
             // 创建标签
             UILabel *label = [[UILabel alloc] init];
-            label.text = title;
-          NSNumber *weightNum = cssToUIFontWeight[@(defaults.fontWeight)];
+            label.numberOfLines = 0;  // 支持多行文字
+            label.lineBreakMode = NSLineBreakByWordWrapping;  // 按单词换行
+            NSNumber *weightNum = cssToUIFontWeight[@(defaults.fontWeight)];
 
-          label.font = [UIFont systemFontOfSize:defaults.fontSize weight:(weightNum ? weightNum.doubleValue : UIFontWeightRegular)];
+            UIFont *font = [UIFont systemFontOfSize:defaults.fontSize weight:(weightNum ? weightNum.doubleValue : UIFontWeightRegular)];
+            CGFloat lineHeight = 21.0;
+            CGFloat baselineOffset = (lineHeight - font.lineHeight) / 4.0;
+            
+            NSMutableParagraphStyle *style = [[NSMutableParagraphStyle alloc] init];
+            style.minimumLineHeight = lineHeight;
+            style.maximumLineHeight = lineHeight;
+            NSDictionary *attrs = @{
+              NSFontAttributeName: font,
+              NSParagraphStyleAttributeName: style,
+              NSBaselineOffsetAttributeName: @(baselineOffset),
+            };
+            label.attributedText = [[NSAttributedString alloc] initWithString:title attributes:attrs];
             // 设置文本颜色
             if (index && i == [index intValue]) {
               label.textColor = [self ColorFromHexCode:defaults.selectedTextColor];
@@ -440,14 +462,6 @@ NSDictionary<NSNumber *, NSNumber *> *cssToUIFontWeight = @{
               label.textColor = [self ColorFromHexCode:defaults.textColor];
             }
             
-            // 设置文本对齐
-            if ([defaults.textAlignment isEqualToString:@"center"]) {
-                label.textAlignment = NSTextAlignmentCenter;
-            } else if ([defaults.textAlignment isEqualToString:@"right"]) {
-                label.textAlignment = NSTextAlignmentRight;
-            } else {
-                label.textAlignment = NSTextAlignmentLeft;
-            }
             
             // 设置标签宽度约束
             [label setContentHuggingPriority:UILayoutPriorityDefaultLow forAxis:UILayoutConstraintAxisHorizontal];
@@ -489,25 +503,16 @@ NSDictionary<NSNumber *, NSNumber *> *cssToUIFontWeight = @{
             
             // 添加分隔线（除了最后一项）
             if (i < menuItems.count - 1) {
-                // 添加分隔线上方的间距
-                UIView *topSpacer = [[UIView alloc] init];
-                topSpacer.translatesAutoresizingMaskIntoConstraints = NO;
-                [stackView addArrangedSubview:topSpacer];
-                // 添加分隔线
                 UIView *separator = [[UIView alloc] init];
                 separator.backgroundColor = [self ColorFromHexCode:defaults.separatorColor];
                 separator.translatesAutoresizingMaskIntoConstraints = NO;
                 [stackView addArrangedSubview:separator];
                 
-                // 设置分隔线约束（只设置高度，宽度由stackView自动管理）
+                // 设置分隔线约束，确保高度和宽度都正确
                 [NSLayoutConstraint activateConstraints:@[
-                    [separator.heightAnchor constraintEqualToConstant:defaults.separatorWidth]
+                    [separator.heightAnchor constraintEqualToConstant:defaults.separatorWidth],
+                    [separator.widthAnchor constraintEqualToAnchor:stackView.widthAnchor]
                 ]];
-                
-                // 添加分隔线下方的间距
-                UIView *bottomSpacer = [[UIView alloc] init];
-                bottomSpacer.translatesAutoresizingMaskIntoConstraints = NO;
-                [stackView addArrangedSubview:bottomSpacer];
             }
         }
         
@@ -583,11 +588,25 @@ NSDictionary<NSNumber *, NSNumber *> *cssToUIFontWeight = @{
         
         NSLog(@"Final popup position: x=%f, y=%f", popupX, popupY);
         
+        // 计算内容高度 - 使用自适应高度时的估算
+        // 估算每个item的最小高度：文字高度 + 上下padding
+        CGFloat estimatedItemHeight = defaults.fontSize + 2 * defaults.itemPaddingVertical + 4; // 额外4点作为缓冲
+        CGFloat estimatedContentHeight = menuItems.count * estimatedItemHeight + (menuItems.count - 1) * defaults.separatorWidth + defaults.padding.top + defaults.padding.bottom;
+        CGFloat maxHeight = 240;
+        
+        // 由于使用自适应高度，我们直接使用最大高度作为ScrollView的frame高度
+        // 实际内容高度会通过Auto Layout自动计算
+        CGFloat finalHeight = MIN(estimatedContentHeight, maxHeight);
+        
         [NSLayoutConstraint activateConstraints:@[
             [popupContainer.widthAnchor constraintEqualToConstant:defaults.menuWidth],
+            [popupContainer.heightAnchor constraintEqualToConstant:finalHeight],
             [popupContainer.leadingAnchor constraintEqualToAnchor:overlay.leadingAnchor constant:popupX],
             [popupContainer.topAnchor constraintEqualToAnchor:overlay.topAnchor constant:popupY]
         ]];
+        
+        // 由于使用自适应高度，ScrollView的contentSize会通过Auto Layout自动计算
+        // 不需要手动设置contentSize
         
         // 存储回调
         objc_setAssociatedObject(popupContainer, "resolveBlock", resolve, OBJC_ASSOCIATION_RETAIN_NONATOMIC);

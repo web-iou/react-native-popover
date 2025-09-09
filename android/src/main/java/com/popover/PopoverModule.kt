@@ -11,10 +11,14 @@ import android.os.Build
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
+import android.view.View.MeasureSpec
+import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.ImageView
 import android.widget.PopupWindow
+import android.widget.ScrollView
 import android.widget.TextView
+import androidx.annotation.RequiresApi
 import androidx.core.graphics.toColorInt
 import com.caverock.androidsvg.SVG
 import com.facebook.react.bridge.Promise
@@ -36,6 +40,14 @@ import com.google.android.flexbox.JustifyContent.SPACE_BETWEEN
 class PopoverModule(reactContext: ReactApplicationContext) :
   NativePopoverSpec(reactContext) {
   private lateinit var popupWindow: PopupWindow
+  
+  // 自定义ScrollView支持最大高度
+  private class MaxHeightScrollView(context: Context, private val maxHeight: Int) : ScrollView(context) {
+    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+      val newHeightMeasureSpec = MeasureSpec.makeMeasureSpec(maxHeight, MeasureSpec.AT_MOST)
+      super.onMeasure(widthMeasureSpec, newHeightMeasureSpec)
+    }
+  }
   private fun Int.dpToPx(context: Context): Int {
     val result = TypedValue.applyDimension(
       TypedValue.COMPLEX_UNIT_DIP,
@@ -217,6 +229,7 @@ class PopoverModule(reactContext: ReactApplicationContext) :
     return layerDrawable
   }
 
+  @RequiresApi(Build.VERSION_CODES.P)
   override fun show(
     anchorViewId: Double,
     menuItems: ReadableArray?,
@@ -277,8 +290,11 @@ class PopoverModule(reactContext: ReactApplicationContext) :
           val container = FlexboxLayout(reactApplicationContext).apply {
             layoutParams = LayoutParams(
               LayoutParams.MATCH_PARENT,
-              configDefaults.rowHeight.dpToPx(context)
-            )
+              LayoutParams.WRAP_CONTENT,
+            ).apply {
+              topMargin=13.dpToPx(context)
+              bottomMargin=13.dpToPx(context)
+            }
             alignItems = CENTER
             justifyContent =SPACE_BETWEEN
             setOnClickListener {
@@ -301,10 +317,15 @@ class PopoverModule(reactContext: ReactApplicationContext) :
                 rightMargin=(size+4).dpToPx(context)
               }
             }
+
             (layoutParams as? FlexboxLayout.LayoutParams)?.flexGrow = 1f
 
             setTextSize(TypedValue.COMPLEX_UNIT_SP, configDefaults.textFont.fontSize)
             setTypeface(typeface, Typeface.NORMAL)
+            // 设置行高
+            setLineSpacing(21f.dpToPx() - configDefaults.textFont.fontSize.dpToPx(), 1f)
+            // 不限制行数
+            maxLines = Int.MAX_VALUE
             // 设置字体粗细
             typeface = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
               Typeface.create(Typeface.DEFAULT, configDefaults.textFont.fontWeight, false)
@@ -318,7 +339,6 @@ class PopoverModule(reactContext: ReactApplicationContext) :
               else -> Gravity.START
             }
           }
-
           container.addView(itemView)
           if(index==selectIndex){
             val iconView = ImageView(reactApplicationContext).apply {
@@ -334,8 +354,19 @@ class PopoverModule(reactContext: ReactApplicationContext) :
           }
           popupLayout.addView(container)
       }
+
+        // 创建ScrollView容器
+        val maxHeight = 240.dpToPx(reactApplicationContext)
+        val scrollView = MaxHeightScrollView(reactApplicationContext, maxHeight).apply {
+          layoutParams = ViewGroup.LayoutParams(
+            configDefaults.menuWidth.dpToPx(reactApplicationContext),
+            ViewGroup.LayoutParams.WRAP_CONTENT
+          )
+          addView(popupLayout)
+        }
+
         popupWindow = PopupWindow(
-          popupLayout,
+          scrollView,
           configDefaults.menuWidth.dpToPx(reactApplicationContext),
           WindowManager.LayoutParams.WRAP_CONTENT,
           true

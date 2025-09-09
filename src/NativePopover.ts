@@ -31,7 +31,6 @@ export interface PopOverMenuConfiguration {
     bottom?: Int32;
     right?: Int32;
   };
-  rowHeight?: Int32;
   /** 文本字体 */
   textFont?: {
     fontSize?: Int32;

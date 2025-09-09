@@ -327,10 +327,7 @@ NSDictionary<NSNumber *, NSNumber *> *cssToUIFontWeight = @{
     if (config.textAlignment()) {
         configDict[@"textAlignment"] = config.textAlignment();
     }
-    if (config.rowHeight()) {
-      configDict[@"rowHeight"] = @(config.rowHeight().value());
-    }
-  
+
     if (config.animationDuration().has_value()) {
         configDict[@"animationDuration"] = @(config.animationDuration().value());
     }

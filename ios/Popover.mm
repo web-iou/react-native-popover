@@ -410,14 +410,25 @@ NSDictionary<NSNumber *, NSNumber *> *cssToUIFontWeight = @{
         [popupContainer addSubview:stackView];
         
         // 设置stackView约束
-        [NSLayoutConstraint activateConstraints:@[
-            [stackView.topAnchor constraintEqualToAnchor:popupContainer.topAnchor constant:defaults.padding.top],
-            [stackView.leadingAnchor constraintEqualToAnchor:popupContainer.leadingAnchor constant:defaults.padding.left],
-            [stackView.trailingAnchor constraintEqualToAnchor:popupContainer.trailingAnchor constant:-defaults.padding.right],
-            [stackView.bottomAnchor constraintEqualToAnchor:popupContainer.bottomAnchor constant:-defaults.padding.bottom],
-            // 对于UIScrollView，需要明确设置内容的宽度约束
-            [stackView.widthAnchor constraintEqualToConstant:defaults.menuWidth - defaults.padding.left - defaults.padding.right]
-        ]];
+        if (@available(iOS 11.0, *)) {
+            [NSLayoutConstraint activateConstraints:@[
+                [stackView.topAnchor constraintEqualToAnchor:popupContainer.contentLayoutGuide.topAnchor constant:defaults.padding.top],
+                [stackView.leadingAnchor constraintEqualToAnchor:popupContainer.contentLayoutGuide.leadingAnchor constant:defaults.padding.left],
+                [stackView.trailingAnchor constraintEqualToAnchor:popupContainer.contentLayoutGuide.trailingAnchor constant:-defaults.padding.right],
+                [stackView.bottomAnchor constraintEqualToAnchor:popupContainer.contentLayoutGuide.bottomAnchor constant:-defaults.padding.bottom],
+                // 与可见区域等宽，减去左右内边距
+                [stackView.widthAnchor constraintEqualToAnchor:popupContainer.frameLayoutGuide.widthAnchor constant:-(defaults.padding.left + defaults.padding.right)]
+            ]];
+        } else {
+            // 旧系统回退：约束到scrollView本身并固定内容宽度
+            [NSLayoutConstraint activateConstraints:@[
+                [stackView.topAnchor constraintEqualToAnchor:popupContainer.topAnchor constant:defaults.padding.top],
+                [stackView.leadingAnchor constraintEqualToAnchor:popupContainer.leadingAnchor constant:defaults.padding.left],
+                [stackView.trailingAnchor constraintEqualToAnchor:popupContainer.trailingAnchor constant:-defaults.padding.right],
+                [stackView.bottomAnchor constraintEqualToAnchor:popupContainer.bottomAnchor constant:-defaults.padding.bottom],
+                [stackView.widthAnchor constraintEqualToConstant:defaults.menuWidth - defaults.padding.left - defaults.padding.right]
+            ]];
+        }
         int checkIconSize =defaults.checkIconSize;
         // 创建菜单项
         for (NSInteger i = 0; i < menuItems.count; i++) {
@@ -577,26 +588,54 @@ NSDictionary<NSNumber *, NSNumber *> *cssToUIFontWeight = @{
             NSLog(@"Adjusted popupX to: %f", popupX);
         }
         
-        // 检查下边界
-        if (popupY + 200 > screenHeight) { // 假设弹出容器高度约为200
-            popupY = anchorFrame.origin.y - 200 - 6; // 显示在锚点上方
+        // 先固定宽度，确保后续内容测量基于正确宽度
+        NSLayoutConstraint *presetWidth = [popupContainer.widthAnchor constraintEqualToConstant:defaults.menuWidth];
+        presetWidth.active = YES;
+        [overlay layoutIfNeeded];
+
+        // 基于布局真实计算内容高度
+        [stackView setNeedsLayout];
+        [stackView layoutIfNeeded];
+        CGSize stackSize = [stackView systemLayoutSizeFittingSize:UILayoutFittingCompressedSize];
+        CGFloat contentHeight = stackSize.height + defaults.padding.top + defaults.padding.bottom;
+        CGFloat maxPopoverHeight = 240.0;
+
+        // 超过5项时基于实测每项高度推导“5项高度”，避免估算产生空白
+        BOOL exceedFive = menuItems.count > 5;
+        CGFloat totalSeparatorsHeight = MAX(0, (NSInteger)menuItems.count - 1) * defaults.separatorWidth;
+        CGFloat perItemHeight = 0;
+        if (menuItems.count > 0) {
+            perItemHeight = (stackSize.height - totalSeparatorsHeight) / (CGFloat)menuItems.count;
+        }
+        NSInteger visibleItems = exceedFive ? 5 : (NSInteger)menuItems.count;
+        CGFloat fiveContentHeight = perItemHeight * MIN(5, (NSInteger)menuItems.count) + MAX(0, MIN(5, (NSInteger)menuItems.count) - 1) * defaults.separatorWidth;
+        CGFloat desiredHeight = 0;
+        if (exceedFive) {
+            desiredHeight = MIN(fiveContentHeight + defaults.padding.top + defaults.padding.bottom, maxPopoverHeight);
+        } else {
+            desiredHeight = MIN(contentHeight, maxPopoverHeight);
+        }
+
+        // 检查下边界，若放不下则上方显示
+        if (popupY + desiredHeight > screenHeight) {
+            popupY = MAX(10.0, anchorFrame.origin.y - desiredHeight - 6);
             NSLog(@"Adjusted popupY to: %f", popupY);
         }
-        
+
         NSLog(@"Final popup position: x=%f, y=%f", popupX, popupY);
-        
-        // 计算内容高度 - 使用自适应高度时的估算
-        // 估算每个item的最小高度：文字高度 + 上下padding
-        CGFloat estimatedItemHeight = defaults.fontSize + 2 * defaults.itemPaddingVertical + 4; // 额外4点作为缓冲
-        CGFloat estimatedContentHeight = menuItems.count * estimatedItemHeight + (menuItems.count - 1) * defaults.separatorWidth + defaults.padding.top + defaults.padding.bottom;
-        CGFloat maxHeight = 240;
-        
-        // 由于使用自适应高度，我们直接使用最大高度作为ScrollView的frame高度
-        // 实际内容高度会通过Auto Layout自动计算
-        CGFloat finalHeight = MIN(estimatedContentHeight, maxHeight);
-        
+
+        // 根据可用空间裁剪高度，并按需开启滚动
+        CGFloat availableSpace = screenHeight - popupY - 10.0;
+        CGFloat finalHeight = MIN(desiredHeight, availableSpace);
+        BOOL needsScroll = exceedFive || (contentHeight > finalHeight);
+
+        popupContainer.scrollEnabled = needsScroll;
+        popupContainer.showsVerticalScrollIndicator = needsScroll;
+        popupContainer.showsHorizontalScrollIndicator = NO;
+        popupContainer.alwaysBounceVertical = NO;
+        popupContainer.bounces = needsScroll;
+
         [NSLayoutConstraint activateConstraints:@[
-            [popupContainer.widthAnchor constraintEqualToConstant:defaults.menuWidth],
             [popupContainer.heightAnchor constraintEqualToConstant:finalHeight],
             [popupContainer.leadingAnchor constraintEqualToAnchor:overlay.leadingAnchor constant:popupX],
             [popupContainer.topAnchor constraintEqualToAnchor:overlay.topAnchor constant:popupY]

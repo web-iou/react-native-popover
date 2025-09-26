@@ -11,7 +11,6 @@ import android.os.Build
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
-import android.view.View.MeasureSpec
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.ImageView
@@ -56,18 +55,24 @@ class PopoverModule(reactContext: ReactApplicationContext) :
     ).toInt()
     return result
   }
-  private fun loadSvgFromAssets(context: Context, fileName: String, widthPx: Int, heightPx: Int): Drawable? {
+  private fun loadSvgFromAssets(
+    context: Context, fileName: String, widthPx: Int, heightPx: Int,
+    color: Int
+  ): Drawable? {
     return try {
       val inputStream = context.assets.open(fileName)
-      val svg = SVG.getFromInputStream(inputStream)
+      val svgText = inputStream.bufferedReader().use { it.readText() }
 
-      // 设置目标尺寸
+      // 把 currentColor 替换成具体颜色（例如 #RRGGBB）
+      val hexColor = String.format("#%06X", 0xFFFFFF and color)
+      val replacedSvgText = svgText.replace("currentColor", hexColor)
+
+      val svg = SVG.getFromString(replacedSvgText)
       svg.setDocumentWidth(widthPx.toFloat())
       svg.setDocumentHeight(heightPx.toFloat())
 
       val picture = svg.renderToPicture()
-      val drawable = PictureDrawable(picture)
-      drawable
+      PictureDrawable(picture)
     } catch (e: Exception) {
       e.printStackTrace()
       null
@@ -347,7 +352,7 @@ class PopoverModule(reactContext: ReactApplicationContext) :
                 LayoutParams.WRAP_CONTENT
               )
               (layoutParams as? FlexboxLayout.LayoutParams)?.flexShrink = 0f
-              val icon = loadSvgFromAssets(context, "icon/check.svg", size.dpToPx(context), size.dpToPx(context))
+              val icon = loadSvgFromAssets(context, "icon/check.svg", size.dpToPx(context), size.dpToPx(context),configDefaults.selectedTextColor.toColorInt())
               setImageDrawable(icon)
             }
             container.addView(iconView)

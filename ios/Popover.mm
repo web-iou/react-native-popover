@@ -59,10 +59,10 @@
         _selectedTextColor = @"#FF891F";
         _separatorColor = @"#E5E5E5";
         _shadowColor = @"#000000";
-        _shadowOpacity = 0.25;  // 增加到25%透明度
-        _shadowRadius = 8;      // 增加到8点半径
+        _shadowOpacity = 0.1;  // 增加到25%透明度
+        _shadowRadius = 12;      // 增加到8点半径
         _shadowOffsetX = 0;
-        _shadowOffsetY = 4;     // 增加到4点偏移
+        _shadowOffsetY = 5;     // 增加到4点偏移
         _rowHeight = 0;         // 不设置默认值，使用自适应高度
         _separatorWidth =0.3333333;
     }
@@ -372,13 +372,6 @@ NSDictionary<NSNumber *, NSNumber *> *cssToUIFontWeight = @{
             return;
       }
         
-        // 创建弹出菜单容器
-      UIScrollView *popupContainer = [[UIScrollView alloc] init];
-      popupContainer.backgroundColor = [self ColorFromHexCode:defaults.backgroundColor];
-        popupContainer.layer.cornerRadius = defaults.menuCornerRadius;
-        // 移除 masksToBounds，否则阴影会被裁剪
-        // popupContainer.layer.masksToBounds = YES;
-        
         // 获取锚点视图的位置
       UIView *anchorView = [rootVC.view viewWithTag:(NSInteger)anchorViewId];
       if (!anchorView) {
@@ -386,21 +379,43 @@ NSDictionary<NSNumber *, NSNumber *> *cssToUIFontWeight = @{
                 return;
       }
         
-        // 添加边框
+        // 创建外层容器用于处理阴影和圆角
+        UIView *shadowContainer = [[UIView alloc] init];
+        shadowContainer.backgroundColor = [UIColor clearColor];
+        shadowContainer.layer.cornerRadius = defaults.menuCornerRadius;
+        shadowContainer.layer.masksToBounds = NO; // 允许阴影显示
+        
+        // 添加阴影到外层容器
+        shadowContainer.layer.shadowColor = [self ColorFromHexCode:defaults.shadowColor].CGColor;
+        shadowContainer.layer.shadowOpacity = defaults.shadowOpacity;
+        shadowContainer.layer.shadowRadius = defaults.shadowRadius;
+        shadowContainer.layer.shadowOffset = CGSizeMake(defaults.shadowOffsetX, defaults.shadowOffsetY);
+        
+        // 创建内层滚动容器用于处理内容裁剪
+        UIScrollView *popupContainer = [[UIScrollView alloc] init];
+        popupContainer.backgroundColor = [self ColorFromHexCode:defaults.backgroundColor];
+        popupContainer.layer.cornerRadius = defaults.menuCornerRadius;
+        popupContainer.clipsToBounds = YES; // 裁剪超出内容
+        
+        // 添加边框到内层容器
         if (defaults.borderWidth > 0) {
             popupContainer.layer.borderWidth = defaults.borderWidth;
           popupContainer.layer.borderColor = [self ColorFromHexCode:defaults.borderColor].CGColor;
         }
         
-        // 添加阴影
-        popupContainer.layer.shadowColor = [self ColorFromHexCode:defaults.shadowColor].CGColor;
-        popupContainer.layer.shadowOpacity = defaults.shadowOpacity;
-        popupContainer.layer.shadowRadius = defaults.shadowRadius;
-        popupContainer.layer.shadowOffset = CGSizeMake(defaults.shadowOffsetX, defaults.shadowOffsetY);
-        
+        // 将内层容器添加到外层容器
+        [shadowContainer addSubview:popupContainer];
+        popupContainer.translatesAutoresizingMaskIntoConstraints = NO;
+        [NSLayoutConstraint activateConstraints:@[
+            [popupContainer.topAnchor constraintEqualToAnchor:shadowContainer.topAnchor],
+            [popupContainer.leadingAnchor constraintEqualToAnchor:shadowContainer.leadingAnchor],
+            [popupContainer.trailingAnchor constraintEqualToAnchor:shadowContainer.trailingAnchor],
+            [popupContainer.bottomAnchor constraintEqualToAnchor:shadowContainer.bottomAnchor]
+        ]];
+
         // 确保阴影能够正确渲染
-        popupContainer.layer.shouldRasterize = YES;
-        popupContainer.layer.rasterizationScale = [UIScreen mainScreen].scale;
+//        popupContainer.layer.shouldRasterize = YES;
+//        popupContainer.layer.rasterizationScale = [UIScreen mainScreen].scale;
         
         // 创建垂直布局容器
         UIStackView *stackView = [[UIStackView alloc] init];
@@ -525,8 +540,8 @@ NSDictionary<NSNumber *, NSNumber *> *cssToUIFontWeight = @{
         }
         
         // 设置容器宽度约束
-        [popupContainer setContentHuggingPriority:UILayoutPriorityRequired forAxis:UILayoutConstraintAxisHorizontal];
-        [popupContainer setContentCompressionResistancePriority:UILayoutPriorityRequired forAxis:UILayoutConstraintAxisHorizontal];
+        [shadowContainer setContentHuggingPriority:UILayoutPriorityRequired forAxis:UILayoutConstraintAxisHorizontal];
+        [shadowContainer setContentCompressionResistancePriority:UILayoutPriorityRequired forAxis:UILayoutConstraintAxisHorizontal];
         
         // 创建弹出窗口
         UIWindow *window = nil;
@@ -564,11 +579,11 @@ NSDictionary<NSNumber *, NSNumber *> *cssToUIFontWeight = @{
             [overlay.trailingAnchor constraintEqualToAnchor:window.trailingAnchor],
             [overlay.bottomAnchor constraintEqualToAnchor:window.bottomAnchor]
         ]];
-        // 将弹出容器添加到遮罩层
-        [overlay addSubview:popupContainer];
+        // 将外层容器添加到遮罩层
+        [overlay addSubview:shadowContainer];
         
-        // 设置弹出窗口约束（与锚点左对齐，yoffset默认6）
-        popupContainer.translatesAutoresizingMaskIntoConstraints = NO;
+        // 设置外层容器约束（与锚点左对齐，yoffset默认6）
+        shadowContainer.translatesAutoresizingMaskIntoConstraints = NO;
         
         // 计算弹出容器的位置
         CGFloat popupX = anchorFrame.origin.x;
@@ -589,7 +604,7 @@ NSDictionary<NSNumber *, NSNumber *> *cssToUIFontWeight = @{
         }
         
         // 先固定宽度，确保后续内容测量基于正确宽度
-        NSLayoutConstraint *presetWidth = [popupContainer.widthAnchor constraintEqualToConstant:defaults.menuWidth];
+        NSLayoutConstraint *presetWidth = [shadowContainer.widthAnchor constraintEqualToConstant:defaults.menuWidth];
         presetWidth.active = YES;
         [overlay layoutIfNeeded];
 
@@ -636,19 +651,19 @@ NSDictionary<NSNumber *, NSNumber *> *cssToUIFontWeight = @{
         popupContainer.bounces = needsScroll;
 
         [NSLayoutConstraint activateConstraints:@[
-            [popupContainer.heightAnchor constraintEqualToConstant:finalHeight],
-            [popupContainer.leadingAnchor constraintEqualToAnchor:overlay.leadingAnchor constant:popupX],
-            [popupContainer.topAnchor constraintEqualToAnchor:overlay.topAnchor constant:popupY]
+            [shadowContainer.heightAnchor constraintEqualToConstant:finalHeight],
+            [shadowContainer.leadingAnchor constraintEqualToAnchor:overlay.leadingAnchor constant:popupX],
+            [shadowContainer.topAnchor constraintEqualToAnchor:overlay.topAnchor constant:popupY]
         ]];
         
         // 由于使用自适应高度，ScrollView的contentSize会通过Auto Layout自动计算
         // 不需要手动设置contentSize
         
         // 存储回调
-        objc_setAssociatedObject(popupContainer, "resolveBlock", resolve, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-        objc_setAssociatedObject(popupContainer, "rejectBlock", reject, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        objc_setAssociatedObject(shadowContainer, "resolveBlock", resolve, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        objc_setAssociatedObject(shadowContainer, "rejectBlock", reject, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
         // 关联遮罩层以便关闭时一并移除
-        objc_setAssociatedObject(popupContainer, "overlayView", overlay, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        objc_setAssociatedObject(shadowContainer, "overlayView", overlay, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
         
         // 添加点击外部关闭手势
         UITapGestureRecognizer *backgroundTap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(backgroundTapped:)];
@@ -656,15 +671,15 @@ NSDictionary<NSNumber *, NSNumber *> *cssToUIFontWeight = @{
         [overlay addGestureRecognizer:backgroundTap];
         
         // 存储弹出窗口引用和标识
-        objc_setAssociatedObject(backgroundTap, "popupContainer", popupContainer, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        objc_setAssociatedObject(backgroundTap, "popupContainer", shadowContainer, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
         
         // 显示动画
-        popupContainer.alpha = 0;
-        popupContainer.transform = CGAffineTransformMakeScale(0.8, 0.8);
+        shadowContainer.alpha = 0;
+        shadowContainer.transform = CGAffineTransformMakeScale(0.8, 0.8);
         
         [UIView animateWithDuration:defaults.animationDuration animations:^{
-            popupContainer.alpha = 1;
-            popupContainer.transform = CGAffineTransformIdentity;
+            shadowContainer.alpha = 1;
+            shadowContainer.transform = CGAffineTransformIdentity;
         }];
     });
 }
@@ -673,12 +688,17 @@ NSDictionary<NSNumber *, NSNumber *> *cssToUIFontWeight = @{
 - (void)menuItemTapped:(UITapGestureRecognizer *)gesture {
     UIView *itemStack = gesture.view;
     NSNumber *index = objc_getAssociatedObject(itemStack, "menuIndex");
-    UIView *popupContainer = itemStack.superview.superview;
+    // 向上查找找到 shadowContainer（外层容器）
+    UIView *currentView = itemStack;
+    while (currentView && ![currentView isKindOfClass:[UIScrollView class]]) {
+        currentView = currentView.superview;
+    }
+    UIView *shadowContainer = currentView ? currentView.superview : nil;
     
-    RCTPromiseResolveBlock resolve = objc_getAssociatedObject(popupContainer, "resolveBlock");
+    RCTPromiseResolveBlock resolve = objc_getAssociatedObject(shadowContainer, "resolveBlock");
     
     // 关闭弹出窗口
-    [self dismissPopup:popupContainer];
+    [self dismissPopup:shadowContainer];
     
     // 返回选中的索引
     if (resolve) {

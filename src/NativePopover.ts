@@ -37,6 +37,8 @@ export interface PopOverMenuConfiguration {
     fontWeight?: Int32;
   };
   checkIconSize?: Int32;
+  /** 每个菜单项的上下内边距 */
+  itemPaddingVertical?: Int32;
   /** 文本对齐方式 */
   textAlignment?: 'left' | 'center' | 'right';
   /**

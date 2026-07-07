@@ -307,6 +307,9 @@ NSDictionary<NSNumber *, NSNumber *> *cssToUIFontWeight = @{
     if (config.checkIconSize().has_value()) {
       configDict[@"checkIconSize"] = @(config.checkIconSize().value());
     }
+    if (config.itemPaddingVertical().has_value()) {
+      configDict[@"itemPaddingVertical"] = @(config.itemPaddingVertical().value());
+    }
     // padding是对象类型
     if (config.padding()) {
       configDict[@"padding"] = @{

@@ -36,28 +36,27 @@ import com.google.android.flexbox.FlexboxLayout.SHOW_DIVIDER_MIDDLE
 import com.google.android.flexbox.JustifyContent.SPACE_BETWEEN
 
 @ReactModule(name = PopoverModule.NAME)
-class PopoverModule(reactContext: ReactApplicationContext) :
-  NativePopoverSpec(reactContext) {
+class PopoverModule(reactContext: ReactApplicationContext) : NativePopoverSpec(reactContext) {
   private lateinit var popupWindow: PopupWindow
-  
+
   // 自定义ScrollView支持最大高度
-  private class MaxHeightScrollView(context: Context, private val maxHeight: Int) : ScrollView(context) {
+  private class MaxHeightScrollView(context: Context, private val maxHeight: Int) :
+    ScrollView(context) {
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
       val newHeightMeasureSpec = MeasureSpec.makeMeasureSpec(maxHeight, MeasureSpec.AT_MOST)
       super.onMeasure(widthMeasureSpec, newHeightMeasureSpec)
     }
   }
+
   private fun Int.dpToPx(context: Context): Int {
     val result = TypedValue.applyDimension(
-      TypedValue.COMPLEX_UNIT_DIP,
-      this.toFloat(),
-      context.resources.displayMetrics
+      TypedValue.COMPLEX_UNIT_DIP, this.toFloat(), context.resources.displayMetrics
     ).toInt()
     return result
   }
+
   private fun loadSvgFromAssets(
-    context: Context, fileName: String, widthPx: Int, heightPx: Int,
-    color: Int
+    context: Context, fileName: String, widthPx: Int, heightPx: Int, color: Int
   ): Drawable? {
     return try {
       val inputStream = context.assets.open(fileName)
@@ -78,17 +77,15 @@ class PopoverModule(reactContext: ReactApplicationContext) :
       null
     }
   }
+
   data class PaddingDefaults(
-    val top: Int,
-    val left: Int,
-    val bottom: Int,
-    val right: Int
+    val top: Int, val left: Int, val bottom: Int, val right: Int
   )
 
   data class TextFontDefaults(
-    val fontSize: Float,
-    val fontWeight: Int
+    val fontSize: Float, val fontWeight: Int
   )
+
   // 数据类定义
   data class ConfigDefaults(
     val menuWidth: Int,
@@ -101,12 +98,13 @@ class PopoverModule(reactContext: ReactApplicationContext) :
     val textFont: TextFontDefaults,
     val textAlignment: String,
     val animationDuration: Float,
-    val rowHeight:Int,
+    val rowHeight: Int,
     val selectedTextColor: String,
     val separatorColor: String,
-    val checkIconSize:Int,
-    val separatorWidth:Float
+    val checkIconSize: Int,
+    val separatorWidth: Float
   )
+
   // 安全读取方法
   private fun getSafeString(config: ReadableMap?, key: String): String? {
     return try {
@@ -159,13 +157,18 @@ class PopoverModule(reactContext: ReactApplicationContext) :
   private fun getPaddingWithDefaults(paddingMap: ReadableMap?): PaddingDefaults {
     return if (paddingMap != null) {
       PaddingDefaults(
-        top = getSafeDouble(paddingMap, "top")?.toInt() ?: 0,
-        left = getSafeDouble(paddingMap, "left")?.toInt() ?: 16.dpToPx(reactApplicationContext),
-        bottom = getSafeDouble(paddingMap, "bottom")?.toInt() ?: 0,
-        right = getSafeDouble(paddingMap, "right")?.toInt() ?: 16.dpToPx(reactApplicationContext)
+        top = getSafeDouble(paddingMap, "top")?.toInt()?.dpToPx(reactApplicationContext) ?: 0,
+        left = getSafeDouble(paddingMap, "left")?.toInt()?.dpToPx(reactApplicationContext) ?: 16.dpToPx(reactApplicationContext),
+        bottom = getSafeDouble(paddingMap, "bottom")?.toInt()?.dpToPx(reactApplicationContext) ?: 0,
+        right = getSafeDouble(paddingMap, "right")?.toInt()?.dpToPx(reactApplicationContext) ?: 16.dpToPx(reactApplicationContext)
       )
     } else {
-      PaddingDefaults(0, 16.dpToPx(reactApplicationContext), 0, 16.dpToPx(reactApplicationContext)) // 默认内边距
+      PaddingDefaults(
+        0,
+        left = 16.dpToPx(reactApplicationContext),
+        0,
+        right = 16.dpToPx(reactApplicationContext)
+      ) // 默认内边距
     }
   }
 
@@ -195,14 +198,16 @@ class PopoverModule(reactContext: ReactApplicationContext) :
       animationDuration = getSafeDouble(config, "animationDuration")?.toFloat() ?: 0.2f,
       selectedTextColor = getSafeString(config, "selectedTextColor") ?: "#FF891F",
       separatorColor = getSafeString(config, "separatorColor") ?: "#E6E6E6",
-      rowHeight = getSafeInt(config,"rowHeight")?:48,
-      checkIconSize = getSafeInt(config,"checkIconSize")?:16,
-      separatorWidth =getSafeDouble(config,"separatorWidth")?.toFloat()?:0.5f
+      rowHeight = getSafeInt(config, "rowHeight") ?: 48,
+      checkIconSize = getSafeInt(config, "checkIconSize") ?: 16,
+      separatorWidth = getSafeDouble(config, "separatorWidth")?.toFloat() ?: 0.5f
     )
   }
+
   override fun getName(): String {
     return NAME
   }
+
   private fun ReadableArray.toStringList(): List<String> {
     val list = mutableListOf<String>()
     for (i in 0 until this.size()) {
@@ -212,10 +217,12 @@ class PopoverModule(reactContext: ReactApplicationContext) :
     }
     return list
   }
+
   private fun findViewByIdTurbo(anchorViewId: Int, reactContext: ReactApplicationContext): View? {
-    val uiManager= UIManagerHelper.getUIManagerForReactTag(reactContext,anchorViewId)
-    return  uiManager?.resolveView(anchorViewId)
+    val uiManager = UIManagerHelper.getUIManagerForReactTag(reactContext, anchorViewId)
+    return uiManager?.resolveView(anchorViewId)
   }
+
   private fun createPopupShadowDrawable(
     radius: Float = 8f,  // 圆角半径，默认 8dp
     backgroundColor: String = "#FFFFFF"  // 主体背景颜色，默认白色
@@ -244,17 +251,16 @@ class PopoverModule(reactContext: ReactApplicationContext) :
   ) {
     val configDefaults = getConfigWithDefaults(config)
     val selectIndex = index?.toInt()
-    val activity = currentActivity ?: return
-    activity.runOnUiThread{
-      val anchorView = findViewByIdTurbo(anchorViewId.toInt(),reactApplicationContext)
-      if(anchorView!=null){
+    val activity = reactApplicationContext.currentActivity ?: return
+    activity.runOnUiThread {
+      val anchorView = findViewByIdTurbo(anchorViewId.toInt(), reactApplicationContext)
+      if (anchorView != null) {
 
         val popupLayout = FlexboxLayout(reactApplicationContext).apply {
           flexDirection = FlexDirection.COLUMN
 
           layoutParams = LayoutParams(
-            LayoutParams.MATCH_PARENT,
-            LayoutParams.WRAP_CONTENT
+            LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT
           )
           val drawable = GradientDrawable().apply {
             shape = GradientDrawable.RECTANGLE
@@ -297,33 +303,32 @@ class PopoverModule(reactContext: ReactApplicationContext) :
               LayoutParams.MATCH_PARENT,
               LayoutParams.WRAP_CONTENT,
             ).apply {
-              topMargin=13.dpToPx(context)
-              bottomMargin=13.dpToPx(context)
+              topMargin = 13.dpToPx(context)
+              bottomMargin = 13.dpToPx(context)
             }
             alignItems = CENTER
-            justifyContent =SPACE_BETWEEN
+            justifyContent = SPACE_BETWEEN
             setOnClickListener {
               promise?.resolve(index)
-              popupWindow?.dismiss()
+              popupWindow.dismiss()
             }
           }
           val size = configDefaults.checkIconSize
           val itemView = TextView(reactApplicationContext).apply {
             text = title
-            layoutParams = FlexboxLayout.LayoutParams(
-             LayoutParams.WRAP_CONTENT,
-              LayoutParams.WRAP_CONTENT
+            layoutParams = LayoutParams(
+              LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT
             ).apply {
               if (selectIndex == index) {
                 setTextColor(configDefaults.selectedTextColor.toColorInt())
-                rightMargin=4.dpToPx(context)
+                rightMargin = 4.dpToPx(context)
               } else {
                 setTextColor(configDefaults.textColor.toColorInt())
-                rightMargin=(size+4).dpToPx(context)
+                rightMargin = (size + 4).dpToPx(context)
               }
             }
 
-            (layoutParams as? FlexboxLayout.LayoutParams)?.flexGrow = 1f
+            (layoutParams as? LayoutParams)?.flexGrow = 1f
 
             setTextSize(TypedValue.COMPLEX_UNIT_SP, configDefaults.textFont.fontSize)
             setTypeface(typeface, Typeface.NORMAL)
@@ -345,20 +350,25 @@ class PopoverModule(reactContext: ReactApplicationContext) :
             }
           }
           container.addView(itemView)
-          if(index==selectIndex){
+          if (index == selectIndex) {
             val iconView = ImageView(reactApplicationContext).apply {
-              layoutParams = FlexboxLayout.LayoutParams(
-                LayoutParams.WRAP_CONTENT,
-                LayoutParams.WRAP_CONTENT
+              layoutParams = LayoutParams(
+                LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT
               )
-              (layoutParams as? FlexboxLayout.LayoutParams)?.flexShrink = 0f
-              val icon = loadSvgFromAssets(context, "icon/check.svg", size.dpToPx(context), size.dpToPx(context),configDefaults.selectedTextColor.toColorInt())
+              (layoutParams as? LayoutParams)?.flexShrink = 0f
+              val icon = loadSvgFromAssets(
+                context,
+                "icon/check.svg",
+                size.dpToPx(context),
+                size.dpToPx(context),
+                configDefaults.selectedTextColor.toColorInt()
+              )
               setImageDrawable(icon)
             }
             container.addView(iconView)
           }
           popupLayout.addView(container)
-      }
+        }
 
         // 创建ScrollView容器
         val maxHeight = 240.dpToPx(reactApplicationContext)
@@ -378,15 +388,20 @@ class PopoverModule(reactContext: ReactApplicationContext) :
         ).apply {
           isOutsideTouchable = true
           isFocusable = true
-          val drawable =createPopupShadowDrawable(configDefaults.menuCornerRadius,configDefaults.backgroundColor)
-          elevation=12f
+          val drawable = createPopupShadowDrawable(
+            configDefaults.menuCornerRadius,
+            configDefaults.backgroundColor
+          )
+          elevation = 12f
           setBackgroundDrawable(drawable)
         }
         anchorView.post {
-          popupWindow!!.showAsDropDown(anchorView,0,5.dpToPx(reactApplicationContext))
+          popupWindow.showAsDropDown(anchorView, 0, 5.dpToPx(reactApplicationContext))
         }
+      }
     }
-  }}
+  }
+
   companion object {
     const val NAME = "Popover"
   }
